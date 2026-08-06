@@ -28,6 +28,15 @@ class AlgorithmConfig:
     ig_iterations: int = 2000
     ig_use_local_search: bool = True
 
+    # NSGA-II parameter
+    tournament_size: int = 2
+
+    # MOEA/D parameters
+    moead_H: int = 99
+    moead_T: int = 20
+    moead_delta: float = 0.9
+    moead_nr: int = 2
+
     # General
     time_limit: float = float("inf")
 

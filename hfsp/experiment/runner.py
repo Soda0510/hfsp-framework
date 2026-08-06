@@ -18,6 +18,7 @@ from ..io.instance_reader import InstanceReader
 from ..utils.random import RNGManager
 from ..methods.heuristics import neh_heuristic, spt_heuristic, lpt_heuristic
 from ..methods.metaheuristics import GeneticAlgorithm, SimulatedAnnealing, IteratedGreedy
+from ..methods.metaheuristics import NSGAII, MOEAD
 from .config import ExperimentConfig, AlgorithmConfig
 from .statistics import RunResult, ExperimentResultSet
 
@@ -157,6 +158,31 @@ class ExperimentRunner:
             return IteratedGreedy(
                 max_iterations=algo_config.ig_iterations,
                 use_local_search=algo_config.ig_use_local_search,
+                rng=rng,
+                time_limit=algo_config.time_limit,
+            )
+
+        elif name in ("NSGA-II", "NSGA2"):
+            return NSGAII(
+                population_size=algo_config.population_size,
+                crossover_prob=algo_config.crossover_prob,
+                mutation_prob=algo_config.mutation_prob,
+                max_generations=algo_config.max_generations,
+                tournament_size=algo_config.tournament_size,
+                rng=rng,
+                time_limit=algo_config.time_limit,
+            )
+
+        elif name in ("MOEA/D", "MOEAD"):
+            return MOEAD(
+                population_size=algo_config.population_size,
+                H=algo_config.moead_H,
+                T=algo_config.moead_T,
+                delta=algo_config.moead_delta,
+                nr=algo_config.moead_nr,
+                crossover_prob=algo_config.crossover_prob,
+                mutation_prob=algo_config.mutation_prob,
+                max_generations=algo_config.max_generations,
                 rng=rng,
                 time_limit=algo_config.time_limit,
             )

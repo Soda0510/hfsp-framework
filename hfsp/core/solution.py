@@ -6,7 +6,7 @@ objective values (makespan, flow time, tardiness, energy).
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, TYPE_CHECKING
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
@@ -48,6 +48,10 @@ class ScheduleSolution:
     tardiness: float = 0.0
     energy: float = 0.0
     weighted_objective: float = float("inf")
+
+    # Pareto metadata (for multi-objective algorithms)
+    rank: Optional[int] = None
+    crowding_distance: Optional[float] = None
 
     # Metadata
     generation: int = 0
@@ -102,6 +106,8 @@ class ScheduleSolution:
             tardiness=self.tardiness,
             energy=self.energy,
             weighted_objective=self.weighted_objective,
+            rank=self.rank,
+            crowding_distance=self.crowding_distance,
             generation=self.generation,
             method=self.method,
         )

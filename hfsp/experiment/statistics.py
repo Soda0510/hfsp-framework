@@ -24,6 +24,7 @@ class RunResult:
     weighted_obj: float = 0.0
     runtime: float = 0.0
     convergence: Optional[List[float]] = None
+    pareto_front: Optional[List[dict]] = None
 
     def to_dict(self) -> dict:
         d = {
