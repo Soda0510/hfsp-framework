@@ -17,7 +17,7 @@ from ..core.instance import HFSPInstance
 from ..io.instance_reader import InstanceReader
 from ..utils.random import RNGManager
 from ..methods.heuristics import neh_heuristic, spt_heuristic, lpt_heuristic
-from ..methods.metaheuristics import GeneticAlgorithm, SimulatedAnnealing, IteratedGreedy
+from ..methods.metaheuristics import GeneticAlgorithm, SimulatedAnnealing, IteratedGreedy, DiscretePSO
 from ..methods.metaheuristics import NSGAII, MOEAD
 from .config import ExperimentConfig, AlgorithmConfig
 from .statistics import RunResult, ExperimentResultSet
@@ -158,6 +158,14 @@ class ExperimentRunner:
             return IteratedGreedy(
                 max_iterations=algo_config.ig_iterations,
                 use_local_search=algo_config.ig_use_local_search,
+                rng=rng,
+                time_limit=algo_config.time_limit,
+            )
+
+        elif name == "DPSO":
+            return DiscretePSO(
+                swarm_size=algo_config.population_size,
+                max_iterations=algo_config.max_generations,
                 rng=rng,
                 time_limit=algo_config.time_limit,
             )

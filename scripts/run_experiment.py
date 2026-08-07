@@ -83,7 +83,7 @@ def main():
     reader = InstanceReader("Data")
     runner = ExperimentRunner(config, reader)
     print(f"Running experiment: {len(algo_configs)} algorithms × "
-          f"{len(config._resolve_instances() if hasattr(runner, '_resolve_instances') else '?' )} instances × "
+          f"{len(runner._resolve_instances())} instances × "
           f"{args.runs} runs")
     results = runner.run()
 
