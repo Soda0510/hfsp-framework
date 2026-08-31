@@ -366,7 +366,7 @@ docs/llm_metaheuristic_design.md   # 本文档
 
 ## 11. 与 RL 学习的关系(本课题的取舍)
 
-- 本课题**暂停 RL 学习主线**(`docs/rl_framework.md` 保留,后续可继续)。
+- 本课题**暂停 RL 学习主线**(已归档到 `docs/archive/rl_framework.md`,留底)。
 - 但二者不冲突,反而互补:
   - 本课题的"评估 → 反馈 → 迭代"与 RL 的"奖励 → 更新"同源;
   - 将来可把 **RL 策略(DQN/PPO)作为组件或选择器嵌进本设计空间**,成为下一篇:"LLM + RL 联合自动设计算法"。
