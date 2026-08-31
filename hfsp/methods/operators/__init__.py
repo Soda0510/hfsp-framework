@@ -5,6 +5,7 @@ from .swap import SwapOperator
 from .insert import InsertOperator
 from .inverse import InverseOperator
 from .scramble import ScrambleOperator
+from .block import BlockOperator
 from .crossover import OrderCrossover, PMXCrossover, TwoPointCrossover
 from .local_search import local_search
 
@@ -17,6 +18,7 @@ __all__ = [
     "InsertOperator",
     "InverseOperator",
     "ScrambleOperator",
+    "BlockOperator",
     "OrderCrossover",
     "PMXCrossover",
     "TwoPointCrossover",

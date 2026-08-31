@@ -1,0 +1,8 @@
+{
+  "total": 480,
+  "train": 336,
+  "test": 144,
+  "evolution_train_subset": 40,
+  "split_rule": "per (n_jobs, n_stages) stratum: idx 1-7 train, idx 8-10 test",
+  "evolution_subset_rule": "per_stratum=1, sizes=[10, 15, 20, 25, 30, 35, 40, 80, 120, 160], stages=[5, 10, 15, 20]"
+}
