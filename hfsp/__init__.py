@@ -5,14 +5,17 @@ A modular, extensible framework for:
   - Modeling HFSP instances (core)
   - Exact solving via MILP (solvers)
   - Constructive heuristics and metaheuristics (methods)
-  - Batch experiment management (experiment)
+  - LLM-guided metaheuristic auto-design (llm: component spec + code slots)
   - Visualization (visualization)
 
+Instances live in benchmarks/seville/ (SevilleReader / SevilleReference).
+
 Quick start:
-    from hfsp.io import InstanceReader
+    from hfsp.io import SevilleReader
     from hfsp.methods.metaheuristics import GeneticAlgorithm
 
-    instance = InstanceReader("Data").load("10-5-6")
+    reader = SevilleReader("benchmarks/seville")
+    instance = reader.load("instancia_10_10_1")
     ga = GeneticAlgorithm(max_generations=200)
     solution = ga.solve(instance)
     print(f"Makespan: {solution.makespan:.1f}")
