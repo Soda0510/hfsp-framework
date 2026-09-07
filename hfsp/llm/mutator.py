@@ -16,7 +16,7 @@ import numpy as np
 
 from .representation import AlgorithmSpec, spec_from_dict
 from .client import LLMClient
-from .prompts import SYSTEM_PROMPT, build_mutation_prompt
+from .prompts import build_system_prompt, build_mutation_prompt
 
 
 class LLMMutator:
@@ -30,6 +30,7 @@ class LLMMutator:
         temperature: Optional[float] = None,
         verbose: bool = True,
         examples: Optional[list] = None,
+        use_semantics: bool = True,   # False -> ablation arm "names only, no glossary"
     ):
         self.client = client
         self.use_feedback = use_feedback    # False -> ablation arm "no feedback"
@@ -38,6 +39,9 @@ class LLMMutator:
         self.verbose = verbose
         # B: few-shot examples of successful improvements (from evolution log).
         self.examples = examples or []
+        # Component glossary (阶段7): tell the LLM what each component DOES
+        # (not just its legal values).  False -> names only.
+        self.system_prompt = build_system_prompt(use_semantics)
         # Tracking for analysis.
         self.stats = {"calls": 0, "failed": 0, "fell_back": 0}
 
@@ -63,7 +67,7 @@ class LLMMutator:
 
         for attempt in range(self.max_retries):
             try:
-                raw = self.client.chat_json(SYSTEM_PROMPT, user,
+                raw = self.client.chat_json(self.system_prompt, user,
                                             temperature=self.temperature)
                 child = spec_from_dict(raw, name=target)
                 return child
@@ -95,7 +99,7 @@ class LLMMutator:
         from .prompts import build_heavy_mutation_prompt
         self.stats["calls"] += 1
         try:
-            raw = self.client.chat_json(SYSTEM_PROMPT, build_heavy_mutation_prompt(parent),
+            raw = self.client.chat_json(self.system_prompt, build_heavy_mutation_prompt(parent),
                                         temperature=self.temperature)
             if isinstance(raw, dict) and raw.get("name"):
                 return raw
@@ -122,7 +126,7 @@ class LLMMutator:
         last_err = None
         for attempt in range(self.max_retries):
             try:
-                raw = self.client.chat_json(SYSTEM_PROMPT, user,
+                raw = self.client.chat_json(self.system_prompt, user,
                                             temperature=self.temperature)
                 return spec_from_dict(raw, name=target)
             except Exception as e:

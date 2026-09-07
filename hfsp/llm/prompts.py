@@ -11,7 +11,7 @@ from typing import Dict, Optional
 
 from .representation import AlgorithmSpec
 
-SYSTEM_PROMPT = """\
+SYSTEM_PROMPT_BASE = """\
 You are an expert at designing metaheuristic algorithms for the Hybrid Flow \
 Shop Scheduling Problem (HFSP). Given a current candidate algorithm (a JSON \
 configuration) and its performance feedback, you propose ONE improved \
@@ -46,6 +46,71 @@ structure (population_mode / use_destroy_repair / acceptance); if it performs \
 well, refine the parameters instead.
 4. Respect every constraint above exactly.
 """
+
+
+# ---------------------------------------------------------------------------
+# Component glossary (阶段7): what each value actually DOES.  The whitelist
+# above names the components and their legal ranges but deliberately omits
+# their semantics; this block grounds the model's choices in the actual
+# implementations (hfsp/methods/*), instead of relying on the pretrained sense
+# of canonical (but ambiguous) names like "block", "scramble" or
+# "record_to_record".
+# ---------------------------------------------------------------------------
+
+COMPONENT_GLOSSARY = """\
+How the fields combine into an algorithm (dispatch):
+- population_mode=true -> a genetic algorithm (tournament selection + crossover + mutation + elitism).
+- population_mode=false & use_destroy_repair=true -> an iterated greedy (remove d jobs, reinsert each at its best position).
+- population_mode=false & use_destroy_repair=false -> a single-solution search (mutation + acceptance, SA/ILS-style).
+- max_iterations=0 -> a pure constructive method (initializer only, no search).
+
+Initializers (build the starting job permutation):
+- "neh": Nawaz-Enscore-Ham — sort jobs by total processing time (descending), then greedily insert each job at its best position.
+- "spt": shortest processing time first (total processing time ascending).
+- "lpt": longest processing time first (total processing time descending).
+- "palmer": Palmer's slope-index rule — a weighted-sum ordering of jobs by their stage processing times.
+- "cds": Campbell-Dudek-Smith — multi-pass Johnson's two-machine rule (keeps the best of the s-1 sequences).
+- "random": a random permutation.
+
+Mutation operators (perturb a job permutation):
+- "swap": swap two randomly chosen jobs.
+- "insert": remove one job and reinsert it at another position.
+- "inverse": reverse a random contiguous subsequence.
+- "scramble": randomly shuffle a contiguous subsequence.
+- "block": move a random contiguous block of jobs (length up to n/3) to a new position.
+
+Crossover operators (combine two parent permutations):
+- "ox": order crossover — copy a subsequence from parent 1, fill the rest in parent 2's order.
+- "pmx": partially mapped crossover.
+- "two_point": two-point crossover.
+
+Acceptance criteria (whether a worse neighbor may replace the current one):
+- "always": accept every candidate.
+- "only_better": accept only a strictly better candidate (hill-climbing).
+- "metropolis": accept a worse candidate with probability exp(-Δ/T); T cools by cooling_rate (simulated annealing).
+- "threshold": accept if the makespan increase is at most `threshold` (threshold accepting).
+- "record_to_record": accept if the new makespan is within (1+threshold) of the best-so-far (record-to-record travel).
+"""
+
+
+def build_system_prompt(with_semantics: bool = True) -> str:
+    """System prompt for config mutation, optionally augmented with semantics.
+
+    ``with_semantics=True`` appends the component glossary so the model knows
+    what each value does (not just its legal range).  The ``False`` arm is the
+    ablation baseline: names only, semantics left to the model's pretrained
+    knowledge.
+    """
+    base = SYSTEM_PROMPT_BASE.rstrip()
+    if not with_semantics:
+        return base
+    return base + "\n\nComponent glossary (what each value does):\n" + COMPONENT_GLOSSARY
+
+
+# Default (module-level) prompt includes the glossary — the improved version.
+# Existing importers (mutator via build_system_prompt, __init__, run_oneshot)
+# get the semantic prompt unless they explicitly opt out.
+SYSTEM_PROMPT = build_system_prompt(True)
 
 
 def build_design_prompt() -> str:

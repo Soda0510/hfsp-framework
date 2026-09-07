@@ -51,8 +51,13 @@ def main():
                         help="multi-seed evaluation runs per instance (阶段1, 降噪声)")
     parser.add_argument("--diversity", type=float, default=0.0,
                         help="diversity penalty lambda (阶段4, >0 enables anti-collapse)")
+    parser.add_argument("--no-semantics", action="store_true",
+                        help="阶段7 ablation: drop the component glossary from the system prompt")
+    parser.add_argument("--tag", type=str, default="",
+                        help="suffix for the output dir (separates ablation runs)")
     args = parser.parse_args()
 
+    OUT_DIR = Path(f"results/llm/base_run_{args.tag}") if args.tag else OUT_DIR
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     # Training set: stratified subset of the 480 (see dataset.py), sized to
@@ -73,7 +78,8 @@ def main():
                            time_limit=max(budget(i) for i in instances))
 
     client = OllamaClient()
-    mutator = LLMMutator(client, max_retries=2, verbose=True)
+    mutator = LLMMutator(client, max_retries=2, verbose=True,
+                         use_semantics=not args.no_semantics)
     engine = ReflectionEngine(client, verbose=True)
     archive = InsightArchive(client, verbose=True)
 
