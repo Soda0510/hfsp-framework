@@ -20,6 +20,7 @@ def make_fitness(
     seed_base: int = 0,
     references: Optional[List[float]] = None,
     time_limit: float = float("inf"),
+    time_limits: Optional[List[float]] = None,
 ) -> Callable[[AlgorithmSpec], float]:
     """
     Build a fitness function over a spec (lower is better).
@@ -30,18 +31,27 @@ def make_fitness(
 
     Seeds are fixed per (instance, run) so every spec is evaluated under the
     same random draws — differences come only from algorithm structure.
+
+    Time budget: either a single ``time_limit`` for every solve, or a
+    per-instance ``time_limits`` list (one per instance) — the latter is the
+    paper protocol ``t = rho * n * total_machines / 1000`` per solve over a
+    heterogeneous training set (a uniform max would hand every small instance
+    the largest instance's budget).
     """
     if references is not None and len(references) != len(instances):
         raise ValueError("references must have one value per instance")
+    if time_limits is not None and len(time_limits) != len(instances):
+        raise ValueError("time_limits must have one value per instance")
 
     def fitness(spec: AlgorithmSpec) -> float:
         inst_means = []
         for i, inst in enumerate(instances):
+            tl = time_limits[i] if time_limits is not None else time_limit
             makespans = []
             for run in range(n_runs):
                 rng = np.random.default_rng(seed_base + i * 1000 + run)
                 sol = ConfigurableMetaheuristic(
-                    spec, rng=rng, time_limit=time_limit
+                    spec, rng=rng, time_limit=tl
                 ).solve(inst)
                 makespans.append(sol.makespan)
             inst_means.append(float(np.mean(makespans)))

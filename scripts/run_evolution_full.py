@@ -35,6 +35,7 @@ OUT_DIR = Path("results/llm/base_run")
 SEVILLE_ROOT = "benchmarks/seville"
 REF_XLSX = "benchmarks/seville/references/UpperBounds_01_April_2019.xlsx"
 SPLIT_SUBSET = "benchmarks/seville/split/evolution_train_subset.txt"
+SPLIT_SUBSET_FAST = "benchmarks/seville/split/evolution_train_fast.txt"
 
 
 def main():
@@ -55,6 +56,18 @@ def main():
                         help="阶段7 ablation: drop the component glossary from the system prompt")
     parser.add_argument("--tag", type=str, default="",
                         help="suffix for the output dir (separates ablation runs)")
+    parser.add_argument("--split", type=str, default="full",
+                        choices=["full", "fast"],
+                        help="training subset: 'full'=evolution_train_subset.txt "
+                             "(40 inst, n<=160), 'fast'=evolution_train_fast.txt "
+                             "(32 inst, n<=80, NEH init stays ~seconds)")
+    parser.add_argument("--time-limit-mode", type=str, default="per-instance",
+                        choices=["per-instance", "uniform-max"],
+                        help="eval time budget policy: 'per-instance' = each "
+                             "solve gets t=rho*n*m/1000 for THAT instance (paper "
+                             "protocol; 4x faster on mixed-size subsets). "
+                             "'uniform-max' = every solve gets the largest "
+                             "instance's budget (legacy behavior)")
     args = parser.parse_args()
 
     OUT_DIR = Path(f"results/llm/base_run_{args.tag}") if args.tag else OUT_DIR
@@ -62,20 +75,37 @@ def main():
 
     # Training set: stratified subset of the 480 (see dataset.py), sized to
     # span the distribution while keeping evolution evaluation fast.
-    train_names = [ln.strip() for ln in open(SPLIT_SUBSET) if ln.strip()]
+    # --split fast drops the n=120/160 instances whose NEH initializer alone
+    #   takes tens of seconds (initializers ignore the time budget).
+    split_file = SPLIT_SUBSET_FAST if args.split == "fast" else SPLIT_SUBSET
+    train_names = [ln.strip() for ln in open(split_file) if ln.strip()]
     reader = SevilleReader(SEVILLE_ROOT)
     ref = SevilleReference(REF_XLSX)
     instances = [reader.load(n) for n in train_names]
     seeds = default_seed_specs()
-    print(f"training instances: {len(train_names)} (from 480 stratified split)")
+    print(f"training instances: {len(train_names)} [{args.split} subset: {split_file}]")
 
     budget = lambda inst: args.rho * inst.num_jobs * inst.total_machines / 1000.0
     # Reference = published UpperBounds (absolute target, not seed-min).
     refs = [ref.best_known(n) for n in train_names]
     print(f"fitness reference: published UpperBounds (mean {np.mean(refs):.0f})")
 
+    # Time budget policy.  Per-instance (paper protocol) gives each solve
+    # t=rho*n*m/1000 for ITS instance — the uniform-max alternative hands the
+    # largest instance's budget to every solve, so small instances burn time
+    # they don't need (~4x slower on this mixed-size subset, no ranking gain).
+    if args.time_limit_mode == "per-instance":
+        fit_time_limits = [budget(i) for i in instances]
+        print(f"time limit: per-instance rho={args.rho} "
+              f"(mean {np.mean(fit_time_limits):.2f}s, "
+              f"max {max(fit_time_limits):.2f}s per solve)")
+    else:
+        fit_time_limits = None
+        print(f"time limit: uniform-max rho={args.rho} "
+              f"({max(budget(i) for i in instances):.2f}s for every solve)")
+
     fitness = make_fitness(instances, n_runs=args.n_runs, references=refs, seed_base=0,
-                           time_limit=max(budget(i) for i in instances))
+                           time_limits=fit_time_limits)
 
     client = OllamaClient()
     mutator = LLMMutator(client, max_retries=2, verbose=True,
